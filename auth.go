@@ -23,11 +23,10 @@ type JwtSignedDetails struct {
 /**
 main functions
 */
-func Signup(client *mongo.Client, user User) AuthResponse {
+func Signup(database *mongo.Database, user User) AuthResponse {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	database := client.Database("pointform")
 	collection := database.Collection("users")
 
 	// Validate user input with the struct
@@ -78,11 +77,10 @@ func Signup(client *mongo.Client, user User) AuthResponse {
 	return res
 }
 
-func Login(client *mongo.Client, user User) AuthResponse {
+func Login(database *mongo.Database, user User) AuthResponse {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	database := client.Database("pointform")
 	collection := database.Collection("users")
 
 	// Validate user input with the struct
