@@ -4,26 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type JwtSignedDetails struct {
-	ID    string `json:"_id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID      string `json:"_id"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Expires int64  `json:"expires"`
 	jwt.StandardClaims
 }
 
 /**
 main functions
 */
-func Signup(database *mongo.Database, user User) AuthResponse {
+func Signup(database *mongo.Database, user User, secretKey string) AuthResponse {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -77,11 +76,19 @@ func Signup(database *mongo.Database, user User) AuthResponse {
 	return res
 }
 
-func Login(database *mongo.Database, user User) AuthResponse {
+func Login(database *mongo.Database, user User, secretKey string) AuthResponse {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	collection := database.Collection("users")
+
+	if len(secretKey) == 0 {
+		return AuthResponse{
+			Status: 500,
+			Msg:    "Invalid SECRET_KEY",
+			Err:    errors.New("SECRET_KEY : Invalid SECRET_KEY"),
+		}
+	}
 
 	// Validate user input with the struct
 	if validateErr := validateInput(user); validateErr != nil {
@@ -117,26 +124,10 @@ func Login(database *mongo.Database, user User) AuthResponse {
 	}
 
 	claims := JwtSignedDetails{
-		ID:    data.ID.Hex(),
-		Name:  data.Name,
-		Email: data.Email,
-	}
-
-	secretKey := os.Getenv("SECRET_KEY")
-	secretKeyErr := godotenv.Load()
-
-	if secretKeyErr != nil || len(secretKey) == 0 {
-		resErr := secretKeyErr
-
-		if len(secretKey) == 0 {
-			resErr = errors.New("Env Error : Unable to get SECRET_KEY")
-		}
-
-		return AuthResponse{
-			Status: 500,
-			Msg:    "Unable to get SECRET_KEY from environment",
-			Err:    resErr,
-		}
+		ID:      data.ID.Hex(),
+		Name:    data.Name,
+		Email:   data.Email,
+		Expires: time.Now().Add(time.Hour * 24).UnixMilli(),
 	}
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secretKey))
