@@ -22,7 +22,7 @@ type JwtSignedDetails struct {
 /**
 main functions
 */
-func Signup(database *mongo.Database, user User, secretKey string) AuthResponse {
+func Signup(database *mongo.Database, user User) AuthResponse {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
